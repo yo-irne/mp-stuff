@@ -1,5 +1,26 @@
-#lang racket
+#lang racket/base
 
+(require 2htdp/image)
+(require 2htdp/universe)
+
+;zad5
+( define ( a-plus-abs-b a b)
+(( if ( > b 0) + -) a b))
+
+;zad4
+( define ( min a b c) 
+( if (and (>= a b) (>= c b)) b (if (and (>= b c) (>= a c)) c a)))
+
+( define ( fun a b c) 
+(- ( + ( * a a) ( * b b) ( * c c)) ( * ( min a b c) ( min a b c))))
+
+;(fun 2 4 5)
+
+;zad6
+( define ( jeżeli ifCond ifTrue ifFalse)
+( or( and ifCond ifTrue) ifFalse))
+
+;zad7
 (require 2htdp/image)
 (require 2htdp/universe)
 
