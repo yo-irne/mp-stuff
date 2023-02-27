@@ -1,8 +1,5 @@
 #lang racket/base
 
-(require 2htdp/image)
-(require 2htdp/universe)
-
 ;zad5
 ( define ( a-plus-abs-b a b)
 (( if ( > b 0) + -) a b))
