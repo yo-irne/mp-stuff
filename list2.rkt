@@ -6,7 +6,11 @@
     [(= n 1) 1]
     [else (+ (fib (- n 1)) (fib (- n 2)))]))
 
-; TODO: fib-iter
+(define (fib-iter n)
+  (define (iter n a b)
+    (if (= n 0) a
+        (iter (- n 1) b (+ b a))))
+  (iter n 0 1))
 
 (define-struct matrix (a b c d)
   #:auto-value 0
@@ -62,11 +66,23 @@
   (cond
     [(null? xs) +inf.0]
     [(null? (cdr xs)) xs]
-    [else (min-mix (car xs) (maximum (cdr xs)))]))
+    [else (min-mix (car xs) (minimum (cdr xs)))]))
 
-; TODO: fix sorted?
 (define (sorted? xs)
+  (if (null? (cdr xs)) #t
+      (and (equal? (min-mix (car xs) (car (cdr xs))) (car xs)) (sorted? (cdr xs)))))
+
+(define (select xs)
+  (define (rest xs x)
+    (cond
+      [(null? xs) null]
+      ;[(null? (cdr xs)) (if (equal? (car xs) x) (rest (cdr xs) x) (cons (car xs) null))]
+      [else (if (equal? (car xs) x) (cdr xs) (cons (car xs) (rest (cdr xs) x)))]))
+  (cons (minimum xs) (rest xs (minimum xs))))
+
+(define (selection-sort xs)
   (cond
-    [(null? xs) #t]
-    [(null? (cdr xs)) #t]
-    [(equal? (min-mix (car xs) (car (cdr xs))) (car xs)) (sorted? (cdr xs)) #f]))
+    [(null? xs) null]
+    [else (let ([m (select xs)])
+            (cons (car m) (selection-sort (cdr m))))]))
+
