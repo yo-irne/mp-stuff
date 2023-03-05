@@ -43,11 +43,30 @@
 (define (max a b)
   (if (< a b) b a))
 
+(define (min a b)
+  (if (< a b) a b))
+
 (define (max-mix a b)
   (max (if (list? a) (car a) a) (if (list? b) (car b) b)))
+
+(define (min-mix a b)
+  (min (if (list? a) (car a) a) (if (list? b) (car b) b)))
 
 (define (maximum xs)
   (cond
     [(null? xs) -inf.0]
     [(null? (cdr xs)) xs]
     [else (max-mix (car xs) (maximum (cdr xs)))]))
+
+(define (minimum xs)
+  (cond
+    [(null? xs) +inf.0]
+    [(null? (cdr xs)) xs]
+    [else (min-mix (car xs) (maximum (cdr xs)))]))
+
+; TODO: fix sorted?
+(define (sorted? xs)
+  (cond
+    [(null? xs) #t]
+    [(null? (cdr xs)) #t]
+    [(equal? (min-mix (car xs) (car (cdr xs))) (car xs)) (sorted? (cdr xs)) #f]))
