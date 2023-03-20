@@ -192,3 +192,73 @@
       (cons (reverse (cdr q)) '())]
     [else
       (cons (cdr (car q)) (cdr q))]))
+      
+; ZAD 8
+
+(define-struct ord (val priority) #:transparent )
+(define-struct hleaf () )
+(define-struct hnode (elem rank l r) #:transparent )
+
+(define (hord? p h)
+  (or
+   (hleaf? h)
+   (<= p (ord-priority (hnode-elem h)))))
+
+(define (rank h)
+  (if (hleaf? h) 0 (hnode-rank h)))
+
+(define (heap? h)
+  (or (hleaf? h)
+      (and (hnode? h)
+           (heap? (hnode-l h))
+           (heap? (hnode-r h))
+           (<= (rank (hnode-r h))
+               (rank (hnode-l h)))
+           (= (hnode-rank h) (+ 1 (hnode-rank (hnode-r h))))
+           (hord? (ord-priority (hnode-elem h))
+                 (hnode-l h))
+           (hord? (ord-priority (hnode-elem h))
+                 (hnode-r h)))))
+
+(define (make-node elem heap-a heap-b)
+  (if (hord? heap-a)
+      (if (hord? heap-b)
+          (if (< (ord-priority elem) (ord-priority (hnode-elem heap-a)))
+              (make-node-1 elem heap-a heap-b)
+              (make-node-1 (hnode-elem heap-a) (hnode-l heap-a)
+                           (make-node (hnode-elem elem) (hnode-r heap-a) heap-b)))
+          heap-a)
+      heap-b))
+
+(define (heap-merge h1 h2)
+  (cond
+    ((hleaf? h1) h2)
+    ((hleaf? h2) h1)
+    (else
+     (let* ((e1 (hnode-elem h1))
+            (e2 (hnode-elem h2)))
+       (if (< (ord-priority e1) (ord-priority e2))
+           (make-node e1 (hnode-l h1) (heap-merge (hnode-r h1) h2))
+           (make-node e2 (hnode-l h2) (heap-merge h1 (hnode-r h2))))))))
+; ZAD 9
+
+(define empty-pq '())
+
+(define (pq-insert pq elem)
+(heap-merge pq (make-node (ord elem 0) empty-pq empty-pq)))
+
+(define (pq-pop pq)
+  (cond [(empty? pq) '()]
+        [(hleaf? pq) '()]
+        [else (let ((e (hnode-elem pq)))
+                (heap-merge (hnode-l pq) (hnode-r pq)))]))
+
+(define (pq-min pq)
+  (cond [(empty? pq) '()]
+        [(hleaf? pq) '()]
+        [else (hnode-elem pq)]))
+
+(define (pq-empty? pq) (empty? pq))
+
+(define (pqsort xs)
+  (let loop ((pq (foldl (lambda (elem pq) (pq-insert pq elem)) empty-pq xs)) (result '())) (if (pq-empty? pq) result (loop (pq-pop pq) (cons (pq-min pq) result)))))
