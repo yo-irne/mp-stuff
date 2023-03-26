@@ -53,6 +53,59 @@
 
 ; ZAD 4
 
+(define-type (Zipperof 'a)
+  (Zipper [pref : (Listof 'a)]
+          [suf : (Listof 'a)]))
+
+(define essa (Zipper '(1 2) '(2 1)))
+
+(List->Zipper : ((Listof 'a) -> (Zipperof 'a))) 
+(define (List->Zipper xs) (Zipper '() xs))
+
+(Zipper->List : ((Zipperof 'a) -> (Listof 'a)))
+(define (Zipper->List z) (foldl cons (Zipper-suf z) (Zipper-pref z)))
+
+(move-right : ((Zipperof 'a) -> (Zipperof 'a)))
+(define (move-right z)
+  (Zipper (cons (first (Zipper-suf z)) (Zipper-pref z)) (rest (Zipper-suf z))))
+
+(move-left : ((Zipperof 'a) -> (Zipperof 'a)))
+(define (move-left z)
+  (Zipper (rest (Zipper-pref z)) (cons (first (Zipper-pref z)) (Zipper-suf z))))
+
+(insert : ((Zipperof 'a) 'a -> (Zipperof 'a)))
+(define (insert z elem)
+  (Zipper (Zipper-pref z) (cons elem (Zipper-suf z))))
+
+(define (end? z) (empty? (Zipper-suf z)))
+(define (beg? z) (empty? (Zipper-pref z)))
+
+
+
+
+(place : ((Listof 'a) 'a -> (Listof (Listof 'a))))
+(define (place xs elem)
+  (letrec [(inner (λ(z l elem)
+          (cond [(end? z) (cons (Zipper->List (insert z elem)) l)]
+                [else (cons (Zipper->List (insert z elem)) (inner (move-right z) l elem))])))]
+  (inner (List->Zipper xs) '() elem)))
+
+
+(concat : ((Listof 'a) (Listof 'a) -> (Listof 'a)))
+(define (concat xs ys)
+  (foldl cons xs ys))
+
+
+(define (rank-down xs)
+  (foldr concat '() xs))
+
+
+(perm : ((Listof 'a) -> (Listof (Listof 'a))))
+(define (perm xs)
+  (if (empty? (rest xs)) (list xs)
+      (let [(head (first xs)) (tail (rest xs))]
+      (rank-down (map (λ(x)(place x head)) (perm tail))))))
+
 ; ZAD 5
 
 (define-type (Tree 'a)
@@ -87,6 +140,8 @@
                 0
                 t))
 
+; TODO BST DLA 5 ZADANIA
+
 ; ZAD 7
 
 (define-type Prop
@@ -112,3 +167,29 @@
 
 ;(define f2 (disj (conj (var "p")) (conj)))
 
+; ZAD 8
+
+(define (unwrap-or op def)
+  (type-case (Optionof 'a) op
+    [(some v) v]
+    [(none) def]))
+
+(eval : ((Hashof String Boolean) Prop -> Boolean))
+(define (eval val psi)
+  (type-case Prop psi
+    [(var v) (unwrap-or (hash-ref val v) #f)]
+    [(conj l r) (and (eval val l) (eval val r))]
+    [(disj l r) (or (eval val l) (eval val r))]
+    [(neg f) (not (eval val f))]))
+    
+; ZAD 9
+
+(gen-vals : ((Listof String) -> (Listof (Hashof String Boolean)))) 
+(define (gen-vals xs)
+  (foldl (λ(a b)
+           (append (map (λ(x)(hash-set x a #f)) b)
+           (map (λ(x)(hash-set x a #t)) b)))
+         (list(hash '())) xs))
+
+(define (tautology? psi)
+  (foldl (λ(a b)(and a b)) #t (map (λ(x)(eval x psi)) (gen-vals (free-vars psi)))))
