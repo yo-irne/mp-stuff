@@ -59,8 +59,33 @@
   (leaf)
   (node [l : (Tree 'a)] [elem : 'a] [r : (Tree 'a)]))
 
+(define mytree
+  (node
+   (node (leaf) 2 (leaf))
+   1
+   (node (leaf) 3 (leaf))))
+
 (process-tree : (('a 'b 'c 'b -> 'b) ('a -> 'b) ('a 'c -> 'a) ('a 'c -> 'a) 'a (Tree 'c) -> 'b))
-(define (process-tree node leaf left right acc tree) 2)
+(define (process-tree nd lf left right a t)
+  (cond [(leaf? t) (lf a)]
+        [(node? t) (nd a
+                       (process-tree nd lf left right (left a (node-elem t)) (node-l t))
+                       (node-elem t)
+                       (process-tree nd lf left right (right a (node-elem t)) (node-r t)))]))
+
+(define (tree-max t)
+  (process-tree (lambda (x l c r) (max c (max l r))) (lambda (x) 0) (lambda (x y) x) (lambda (x y) x) 0 t))
+
+(define (tree-min t)
+  (process-tree (lambda (x l c r) (min c (min l r))) (lambda (x) +inf.f) (lambda (x y) x) (lambda (x y) x) 0 t))
+
+(define (sum-paths t)
+  (process-tree (lambda (x l c r) (node l (+ x c) r))
+                (lambda (x) (leaf))
+                (lambda (x y) (+ x y))
+                (lambda (x y) (+ x y))
+                0
+                t))
 
 ; ZAD 7
 
@@ -70,26 +95,17 @@
 (disj [l : Prop] [r : Prop])
 (neg [f : Prop]))
 
-;(define-type (Vars 'a)
-;  (lit [v : 'var])
-;  (con [l : (Vars 'a)] [r : (Vars 'a)]))
+(define (in? x xs) (if (empty? xs) #f (or (equal? x (first xs)) (in? x (rest xs)))))
+(define (union l1 l2)
+  (foldl (lambda (x ys) (if (in? x ys) ys (cons x ys))) l1 l2))
 
-;(in? : (String Listof String -> Boolean))
-(define (in? x xs) (or (equal? x (first xs)) (in? x (rest xs))))
+(define f1 (conj (var "p") (neg (var "p"))))
 
-;(union : (Listof String Listof String -> ListofString))
-(define (union l1 l2) (cond
-                        [(in? (first l1) l2) (union (rest l1) l2)]
-                        [else (union (rest l1) (append (first l1) l2))]))
-
-(free-var : (Prop -> (Listof String)))
 (define (free-var phi) (type-case Prop phi
                          [(var v) (if (equal? v "") '() (list v))]
                          [(conj l r) (union (free-var l) (free-var r))]
                          [(disj l r) (union (free-var l) (free-var r))]
                          [(neg f) (free-var f)]))
-
-
 
 (define f1 (conj (var "p") (neg (var "p"))))
 (free-var f1)
