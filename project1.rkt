@@ -1,5 +1,21 @@
 #lang racket
 
+(provide (struct-out column-info)
+         (struct-out table)
+         (struct-out and-f)
+         (struct-out or-f)
+         (struct-out not-f)
+         (struct-out eq-f)
+         (struct-out eq2-f)
+         (struct-out lt-f)
+         table-insert
+         table-project
+         table-sort
+         table-select
+         table-rename
+         table-cross-join
+         table-natural-join)
+
 (define-struct column-info (name type) #:transparent)
 
 (define-struct table (schema rows) #:transparent)
@@ -112,10 +128,54 @@
 (define-struct eq2-f (name name2))
 (define-struct lt-f (name val))
 
+(define (at row id ids) (cond
+                          [(empty? row) '()]
+                          [(eq? id (first ids)) (first row)]
+                          [else (at (rest row) id (rest ids))]))
+
+(define (check-form form row ids) (cond
+                                [(and-f? form) (and
+                                                (check-form (and-f-l form) row ids)
+                                                (check-form (and-f-r form) row ids))]
+                                [(or-f? form) (or
+                                               (check-form (or-f-l form) row ids)
+                                               (check-form (or-f-r form) row ids))]
+                                [(not-f? form) (not (check-form (not-f-e form) row ids))]
+                                [(eq-f? form) (eq?
+                                               (eq-f-val form)
+                                               (at row (eq-f-name form) ids))]
+                                [(eq2-f? form) (eq?
+                                                (at row (eq2-f-name) ids)
+                                                (at row (eq2-f-name2 form) ids))]
+                                [(lt-f? form) (>=
+                                               (lt-f-val form)
+                                               (at row (lt-f-name form) ids))]
+                                [(boolean? form) form]))
+
+;check form
+(define (valid-rows form rows ids) (cond
+                                 [(empty? rows) '()]
+                                 [(check-form form (first rows) ids) (cons (first rows) (valid-rows form (rest rows) ids))]
+                                 [else (valid-rows form (rest rows) ids)]))
+
 (define (table-select form tab)
-  (table '() '()))
+  (table (table-schema tab) (valid-rows form (table-rows tab) (get-ids (table-schema tab)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; CROSS JOIN ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (cross-concat rows1 rows2) (cond
+                                     [(empty? rows1) '()]
+                                     [(empty? rows2) '()]
+                                     [else (cons
+                                            (map (λ (x) (append (first rows1) x)) rows2)
+                                            (cross-concat (rest rows1) rows2))]))
+
+(define (table-cross-join tab1 tab2)
+  (table (append (table-schema tab1) (table-schema tab2)) (cross-concat (table-rows tab1) (table-rows tab2))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NATURAL JOIN ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (table-natural-join tab1 tab2) (table '() '()))
 
 
 
