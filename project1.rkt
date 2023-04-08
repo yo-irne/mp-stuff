@@ -116,8 +116,46 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SORT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (typeless< x y) (cond
+                            [(and (string? x) (string? y)) (string<? x y)]
+                            [(and (symbol? x) (symbol? y)) (symbol<? x y)]
+                            [(and (number? x) (number? y)) (< x y)]
+                            [(and (boolean? x) (boolean? y)) (eq? x #f)]))
+
+(define (lex< row1 row2 pos ids) (cond
+                                    [(empty? ids) #f]
+                                    [(eq? (first ids) pos) (typeless< (first row1) (first row2))]
+                                    [else (lex< (rest row1) (rest row2) pos (rest ids))]))
+
+(define (lex row1 row2 key ids) (cond
+                                  [(empty? key) #t]
+                                  [(eq? (at row1 (first key) ids) (at row2 (first key) ids))
+                                   (lex row1 row2 (rest key) ids)]
+                                  [(lex< row1 row2 (first key) ids) #t]
+                                  [else #f]))
+
+(define (insert row rows key ids) (cond
+                        [(empty? rows) (list row)]
+                        [(lex row (first rows) key ids) (cons row rows)]
+                        [else (cons (first rows) (insert row (rest rows) key ids))]))
+ 
+(define (sort rows key ids) (cond
+                              [(empty? (cdr rows)) rows]
+                              [else (insert (first rows) (sort (rest rows) key ids) key ids)]))
+
+;(define (lexrow row1 row2 key ids) (cond
+;                                     [(empty? key) #t]
+;                                     [(not (lexat row1 row2 (first key) ids)) #f]
+;                                     [(eq? (at row1 (first key) ids) (at row2 (first key) ids))
+;                                      (lexrow row1 row2 (rest key) ids)]
+;                                     [else (or (and
+;                                                (eq? (at row1 (first key) ids) (at row2 (first key) ids))
+;                                                (lexrow row1 row2 (rest key) ids))
+;                                            )]))
+
 (define (table-sort cols tab) (table
-                               '() '()))
+                               (table-schema tab)
+                               (sort (table-rows tab) cols (get-ids (table-schema tab)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SELECT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -175,14 +213,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NATURAL JOIN ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (diff xs ys) (cond
+                       [(empty? ys) #t]
+                       [else (and (not (in (first ys) xs)) (diff (rest ys) xs))]))
+
+;(define (rename-conflict names1 tab1 names2 tab2) (cond
+;                                             [(empty? names2) '()]
+;                                             [(empty? names1) names2]
+;                                             [(diff names1 names2) names2]
+;                                             [(in (first names2) names1) (rename-conflict names1
+;                                                                                          tab1
+;                                                                                          (get-ids (table-schema (table-rename (first names2) () tab2)))
+;                                                                                          (table-rename (first names2) "nazwa" tab2) )]))
+
 (define (table-natural-join tab1 tab2) (table '() '()))
-
-
-
-
-
-
-
 
 
 
