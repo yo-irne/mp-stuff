@@ -185,9 +185,9 @@
                                 [(eq2-f? form) (eq?
                                                 (at row (eq2-f-name) ids)
                                                 (at row (eq2-f-name2 form) ids))]
-                                [(lt-f? form) (>=
-                                               (lt-f-val form)
-                                               (at row (lt-f-name form) ids))]
+                                [(lt-f? form) (typeless<
+                                               (at row (lt-f-name form) ids)
+                                               (lt-f-val form))]
                                 [(boolean? form) form]))
 
 ;check form
@@ -227,6 +227,13 @@
 ;                                                                                          (table-rename (first names2) "nazwa" tab2) )]))
 
 (define (table-natural-join tab1 tab2) (table '() '()))
+
+
+
+
+
+
+
 
 
 
