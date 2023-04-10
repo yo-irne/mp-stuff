@@ -217,6 +217,45 @@
                        [(empty? ys) #t]
                        [else (and (not (in (first ys) xs)) (diff (rest ys) xs))]))
 
+(define (extract-repeated ids1 ids2) (cond
+                                       [(or (empty? ids1) (empty? ids2)) '()]
+                                       [(in (first ids1) ids2) (cons (first ids1) (extract-repeated (rest ids1) ids2))]
+                                       [else (extract-repeated (rest ids1) ids2)]))
+
+(define (agree? row1 row2 common ids1 ids2) (if (empty? common) #t
+                                          (and (eq? (at row1 (first common) ids1) (at row2 (first common) ids2)) (agree? row1 row2 (rest common) ids1 ids2))))
+
+(define (1-many row rows common ids1 ids2) (cond
+                                             [(empty? rows) '()]
+                                             [(agree? row (first rows) common ids1 ids2)
+                                              (cons (set-union row (first rows)) (1-many row (rest rows) common ids1 ids2))]
+                                             [else (1-many row (rest rows) common ids1 ids2)]))
+
+(define (many-many rows1 rows2 common ids1 ids2) (cond
+                                                   [(empty? rows1) '()]
+                                                   [else (append (1-many (first rows1) rows2 common ids1 ids2)
+                                                                 (many-many (rest rows1) rows2 common ids1 ids2))]))
+
+(define (set-union xs ys) (cond
+                            [(empty? ys) xs]
+                            [(in (first ys) xs) (set-union xs (rest ys))]
+                            [else (set-union (append xs (list (first ys))) (rest ys))]))
+
+(define (schema-union schema1 schema2) (cond
+                                         [(empty? schema2) schema1]
+                                         [(in (column-info-name (first schema2)) (get-ids schema1)) (schema-union schema1 (rest schema2))]
+                                         [else (schema-union (append schema1 (list (first schema2))) (rest schema2))]))
+
+;(define (nat-concat row1 row2 common ids1 ids2) (cond
+;                                                  [(empty? row1) row2]
+;                                                  [(empty? row2) row1]
+;                                                  [(empty? common) (append row1 row2)]))
+
+;(define (natural-concat rows1 rows2) (cond
+;                                       [(empty? rows1) '()]
+;                                       [(empty? rows2) '()]
+;                                       [else ]))
+
 ;(define (rename-conflict names1 tab1 names2 tab2) (cond
 ;                                             [(empty? names2) '()]
 ;                                             [(empty? names1) names2]
@@ -226,7 +265,22 @@
 ;                                                                                          (get-ids (table-schema (table-rename (first names2) () tab2)))
 ;                                                                                          (table-rename (first names2) "nazwa" tab2) )]))
 
-(define (table-natural-join tab1 tab2) (table '() '()))
+(define (table-natural-join tab1 tab2) (let*
+                                           ([rows1 (table-rows tab1)]
+                                            [rows2 (table-rows tab2)]
+                                            [schema1 (table-schema tab1)]
+                                            [schema2 (table-schema tab2)]
+                                            [ids1 (get-ids schema1)]
+                                            [ids2 (get-ids schema2)]
+                                            [common (extract-repeated ids1 ids2)])
+                                         (table
+                                          (schema-union schema1 schema2)
+                                          (many-many rows1 rows2 common ids1 ids2))))
+
+;(table (append (table-schema tab1) (table-schema tab2))
+;                                              (many-many (table-rows tab1)
+;                                                         (table-rows tab2)
+;                                                         (extract-repeated (get-ids (table-schema tab1)))))))
 
 
 
